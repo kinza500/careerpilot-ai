@@ -20,5 +20,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
+# -w 1: a single worker on a memory-constrained free-tier instance. Each
+# worker eagerly loads torch + the embedding model at startup; 2 workers
+# means 2 full copies loaded simultaneously, which was exceeding the
+# platform's memory limit.
 CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", \
-     "-b", "0.0.0.0:8000", "-w", "2", "--timeout", "180"]
+     "-b", "0.0.0.0:8000", "-w", "1", "--timeout", "180"]
