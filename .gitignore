@@ -1,0 +1,23 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# env / secrets
+.env
+*.env
+!.env.example
+
+# node / next
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# misc
+.DS_Store
+*.log
+pgdata/

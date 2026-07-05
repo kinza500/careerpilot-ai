@@ -1,0 +1,66 @@
+# CareerPilot AI — full local stack. `docker compose up` brings up Postgres
+# (with pgvector), Redis, the FastAPI backend, a Celery worker, and the Next.js
+# frontend. The DB schema (incl. RLS policies) is applied on first boot.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: careerpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 001_init.sql runs automatically on an empty data dir.
+      - ./backend/sql/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d careerpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      # Connect as the non-superuser, RLS-respecting role created in 001_init.sql
+      DATABASE_URL: postgresql+asyncpg://careerpilot_app:app_pw_change_me@db:5432/careerpilot
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGIN: http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: ./backend
+    command: celery -A app.worker.celery_app worker --loglevel=info
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://careerpilot_app:app_pw_change_me@db:5432/careerpilot
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

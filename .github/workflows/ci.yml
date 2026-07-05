@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile & smoke-check backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m py_compile app/*.py app/routers/*.py app/agents/*.py app/core/*.py
+          # Optional: install deps and run tests
+          # pip install -r requirements.txt && pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000

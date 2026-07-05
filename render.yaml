@@ -1,0 +1,60 @@
+# Render blueprint — deploys the backend API + Celery worker for the live URL.
+# The database lives on Supabase (Postgres + pgvector), the frontend on Vercel.
+# See docs/DEPLOYMENT.md for the full managed walkthrough.
+
+services:
+  - type: web
+    name: careerpilot-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL          # Supabase pooler URL, asyncpg scheme
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CV_ENCRYPTION_KEY     # set from `Fernet.generate_key()`
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1
+      - key: LLM_PROVIDER
+        value: openai
+      - key: TAVILY_API_KEY        # company research (optional)
+        sync: false
+      - key: JOOBLE_API_KEY        # supplemental job source (optional)
+        sync: false
+      - key: SERPAPI_KEY           # supplemental job source, Google Jobs (optional)
+        sync: false
+      - key: GOOGLE_CLIENT_ID      # Gmail + Calendar OAuth (required for those features)
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI   # this API's own https://.../auth/google/callback
+        sync: false
+      - key: REDIS_URL             # Upstash Redis URL
+        sync: false
+      - key: FRONTEND_ORIGIN       # your Vercel URL
+        sync: false
+
+  - type: worker
+    name: careerpilot-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    dockerCommand: celery -A app.worker.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CV_ENCRYPTION_KEY
+        sync: false
