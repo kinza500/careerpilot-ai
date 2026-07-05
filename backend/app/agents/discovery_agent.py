@@ -205,43 +205,55 @@ COUNTRY_SITES = {
 }
 
 
+def _fetch_site(site: str, search_term: str, country: str, limit: int, work_type: str) -> tuple[str, list[dict]]:
+    try:
+        from jobspy import scrape_jobs
+        df = scrape_jobs(
+            site_name=[site],
+            search_term=search_term,
+            location=country,
+            is_remote=work_type == "remote",
+            country_indeed=country,
+            results_wanted=limit,
+            hours_old=720,
+        )
+        rows = df.fillna("").to_dict("records") if df is not None and not df.empty else []
+        return site, [_normalise(r) for r in rows]
+    except Exception as exc:  # this site's outage (or JobSpy itself missing) shouldn't sink the rest
+        print(f"[discovery] {site} unavailable: {exc}")
+        return site, []
+
+
 def discover_jobs(
     query: str, location: str | None, limit: int, work_type: str = "remote",
 ) -> list[dict]:
     per_source: dict[str, list[dict]] = {}
     country = (location or "Pakistan").strip()
     sites = COUNTRY_SITES.get(country.lower(), DEFAULT_SITES)
-    try:
-        from jobspy import scrape_jobs
-        # JobSpy only exposes a remote/not-remote toggle; "hybrid" has no direct
-        # filter, so we surface it as a search hint instead.
-        search_term = f"{query} hybrid" if work_type == "hybrid" else query
-        for site in sites:
-            try:
-                df = scrape_jobs(
-                    site_name=[site],
-                    search_term=search_term,
-                    location=country,
-                    is_remote=work_type == "remote",
-                    country_indeed=country,
-                    results_wanted=limit,
-                    hours_old=720,
-                )
-                rows = df.fillna("").to_dict("records") if df is not None and not df.empty else []
-                per_source[site] = [_normalise(r) for r in rows]
-            except Exception as exc:  # this site's outage shouldn't sink the rest
-                print(f"[discovery] {site} unavailable: {exc}")
-                per_source[site] = []
-    except Exception as exc:  # JobSpy itself missing/broken — degrade, don't crash
-        print(f"[discovery] JobSpy unavailable: {exc}")
-        per_source = {}
+    # JobSpy only exposes a remote/not-remote toggle; "hybrid" has no direct
+    # filter, so we surface it as a search hint instead.
+    search_term = f"{query} hybrid" if work_type == "hybrid" else query
 
-    per_source["jooble"] = [
-        _normalise_jooble(r) for r in _fetch_jooble(query, country, limit, work_type)
-    ]
-    per_source["google_jobs"] = [
-        _normalise_serpapi(r) for r in _fetch_serpapi(query, country, limit, work_type)
-    ]
+    # Every source below is an independent blocking network call — running
+    # them one after another (as before) sums their latencies and can exceed
+    # a server's request timeout; running them concurrently instead bounds
+    # total time to the SLOWEST single source.
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    with ThreadPoolExecutor(max_workers=len(sites) + 2) as executor:
+        futures = [
+            executor.submit(_fetch_site, site, search_term, country, limit, work_type)
+            for site in sites
+        ]
+        futures.append(executor.submit(
+            lambda: ("jooble", [_normalise_jooble(r) for r in _fetch_jooble(query, country, limit, work_type)])
+        ))
+        futures.append(executor.submit(
+            lambda: ("google_jobs", [_normalise_serpapi(r) for r in _fetch_serpapi(query, country, limit, work_type)])
+        ))
+        for future in as_completed(futures):
+            key, rows = future.result()
+            per_source[key] = rows
 
     excluded_cities = AMBIGUOUS_CITY_EXCLUSIONS.get(country.lower())
     if excluded_cities:
