@@ -36,6 +36,16 @@ app.include_router(applications.router)
 app.include_router(interview.router)
 
 
+@app.on_event("startup")
+async def _preload_embedding_model():
+    # Loads the sentence-transformers model once at boot instead of on the
+    # first request — otherwise the first discovery/matching call after every
+    # cold start pays this cost (15-40s on a slow shared CPU) on top of its
+    # own work, which was pushing job discovery past the platform's timeout.
+    from app.agents.embeddings import _model
+    _model()
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "app": settings.app_name, "llm": settings.llm_provider}
