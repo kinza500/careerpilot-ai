@@ -8,6 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY requirements.txt .
+# CPU-only torch build: the default PyPI wheel bundles CUDA libraries meant
+# for GPU servers, which balloons both image size and runtime memory on a
+# CPU-only host — this alone was exceeding the 512MB free-tier limit just to
+# load sentence-transformers. Installed first so the later requirements.txt
+# install sees torch's dependency already satisfied and doesn't replace it.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the embedding model so first request isn't slow / networked.
