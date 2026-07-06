@@ -11,7 +11,7 @@ Built for the Agentic AI Bootcamp final project. Multi-user, deployed live, with
 
 **Live app:** https://careerpilot-ai-swart.vercel.app
 **Repo:** https://github.com/kinza500/careerpilot-ai
-**Demo video:** _add link here_
+**Demo video:** https://drive.google.com/drive/folders/16ur740yKyLwP_JvPyz_tw7yYBAQRmngd?usp=drive_link
 
 ---
 
