@@ -38,7 +38,7 @@ flowchart TD
     subgraph SEC[Confidentiality boundary]
       API -->|SET app.current_user_id<br/>per request| DB[(Postgres + pgvector<br/>Row-Level Security<br/>Supabase)]
       API -->|encrypt at rest| DB
-      EMB[Local embeddings<br/>sentence-transformers]
+      EMB[Embeddings<br/>OpenAI API, or local<br/>sentence-transformers<br/>when LLM_PROVIDER=ollama]
       API --> EMB
     end
 
@@ -77,7 +77,9 @@ flowchart TD
 
 The **confidentiality boundary** is the point of the design: candidate data is
 isolated per user by database RLS, encrypted at rest, and processed only by a
-model that doesn't train on it, with embeddings computed locally. See
+model that doesn't train on it. Embeddings use that same no-training API by
+default (resume/job text already goes there for the LLM agents); a fully
+local/air-gapped mode (`LLM_PROVIDER=ollama`) keeps embeddings on-box too. See
 [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ---
@@ -88,7 +90,7 @@ model that doesn't train on it, with embeddings computed locally. See
 |---|---|
 | Orchestration | LangGraph, LangChain |
 | LLM | OpenAI API (default) — or Anthropic / Ollama for local/air-gapped |
-| Embeddings | sentence-transformers (local, private, free) |
+| Embeddings | OpenAI API (default) — or local sentence-transformers when `LLM_PROVIDER=ollama` |
 | Backend | Python 3.11, FastAPI, SQLAlchemy async, Pydantic v2, Celery |
 | Data | Postgres 16 + pgvector, **Row-Level Security** |
 | Documents | PyMuPDF, python-docx, WeasyPrint |

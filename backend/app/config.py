@@ -38,7 +38,11 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
 
-    # --- Embeddings (local sentence-transformers keeps CV text on our own box) ---
+    # --- Embeddings ---
+    # Default path: OpenAI's API, truncated to 384 dims (see embeddings.py).
+    openai_embedding_model: str = "text-embedding-3-small"
+    # Fallback for the fully local/air-gapped path (LLM_PROVIDER=ollama) —
+    # keeps CV text on-box in that mode instead of calling OpenAI.
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     # --- Background jobs ---

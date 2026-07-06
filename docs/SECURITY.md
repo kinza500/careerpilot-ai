@@ -54,8 +54,14 @@ retains it only for a short (~30-day) abuse-monitoring window (Zero Data
 Retention is available for eligible enterprise endpoints). Anthropic's API
 offers the same commercial no-train guarantee and can be selected instead. For a
 fully local / air-gapped posture, set `LLM_PROVIDER=ollama` and no CV text
-leaves the host. Embeddings are computed **locally** with `sentence-transformers`,
-so the text used for semantic matching also never leaves your infrastructure.
+leaves the host at all — embeddings fall back to a local `sentence-transformers`
+model in that mode specifically.
+
+By default (OpenAI/Anthropic), embeddings use that same provider's API rather
+than a local model — resume and job text used for semantic matching already
+goes to that API for the LLM agents (resume understanding, matching reasoning,
+writer/critic), so routing embeddings through it too doesn't cross a new trust
+boundary, under the same no-training guarantee above.
 
 > The distinction that matters for confidentiality is **API vs. consumer chat
 > tier**, not which vendor: the API paths of OpenAI and Anthropic both exclude

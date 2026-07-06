@@ -38,12 +38,14 @@ app.include_router(interview.router)
 
 @app.on_event("startup")
 async def _preload_embedding_model():
-    # Loads the sentence-transformers model once at boot instead of on the
-    # first request — otherwise the first discovery/matching call after every
-    # cold start pays this cost (15-40s on a slow shared CPU) on top of its
-    # own work, which was pushing job discovery past the platform's timeout.
-    from app.agents.embeddings import _model
-    _model()
+    # Only the fully local/air-gapped path (LLM_PROVIDER=ollama) loads a local
+    # sentence-transformers model at all; the default path uses OpenAI's
+    # embeddings API and has nothing to preload. Loading it once at boot
+    # instead of on the first request avoids paying that cost (15-40s on a
+    # slow shared CPU) inside a user's actual first request.
+    from app.agents.embeddings import _use_local, _local_model
+    if _use_local():
+        _local_model()
 
 
 @app.get("/health")

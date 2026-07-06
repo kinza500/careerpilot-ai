@@ -16,10 +16,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download the embedding model so first request isn't slow / networked.
-RUN python -c "from sentence_transformers import SentenceTransformer; \
-    SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
-
 COPY . .
 
 EXPOSE 8000
