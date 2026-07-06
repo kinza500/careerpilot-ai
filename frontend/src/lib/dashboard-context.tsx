@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   api, isAuthed,
   type Application, type ApplicationEvent, type Followup, type Profile,
@@ -56,6 +56,7 @@ export function useDashboard(): DashboardState {
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -79,6 +80,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(() => setMsg(""), msgUrl ? 30000 : 5000);
     return () => clearTimeout(t);
   }, [msg, msgUrl]);
+
+  // A status message belongs to the page it was created on (e.g. "Draft
+  // created" on Applications, or a follow-up draft on Follow-ups) — it
+  // shouldn't follow the user to unrelated pages like Interview Prep.
+  useEffect(() => {
+    setMsg("");
+    setMsgUrl(null);
+  }, [pathname]);
 
   function refreshApplications() {
     api.applications().then(setApplications).catch(() => {});
