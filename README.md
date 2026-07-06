@@ -9,6 +9,10 @@ agentic workflow.
 Built for the Agentic AI Bootcamp final project. Multi-user, deployed live, with
 **resume confidentiality treated as a first-class architectural requirement**.
 
+**Live app:** https://careerpilot-ai-swart.vercel.app
+**Repo:** https://github.com/kinza500/careerpilot-ai
+**Demo video:** _add link here_
+
 ---
 
 ## Why it's agentic (not a chatbot)
