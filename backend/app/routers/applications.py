@@ -96,7 +96,8 @@ async def prepare(body: PrepIn, uid: UUID = Depends(current_user)):
     async with tenant_session(uid) as s:
         job = (await s.execute(select(Job).where(Job.id == body.job_id))).scalar_one_or_none()
         profile = (await s.execute(
-            select(SkillProfile).order_by(SkillProfile.created_at.desc()).limit(1)
+            select(SkillProfile).where(SkillProfile.user_id == uid)
+            .order_by(SkillProfile.created_at.desc()).limit(1)
         )).scalar_one_or_none()
     if not job:
         raise HTTPException(404, "Job not found")

@@ -58,7 +58,8 @@ async def upload_resume(file: UploadFile, uid: UUID = Depends(current_user)):
 async def latest_profile(uid: UUID = Depends(current_user)):
     async with tenant_session(uid) as s:
         row = (await s.execute(
-            select(SkillProfile).order_by(SkillProfile.created_at.desc()).limit(1)
+            select(SkillProfile).where(SkillProfile.user_id == uid)
+            .order_by(SkillProfile.created_at.desc()).limit(1)
         )).scalar_one_or_none()
     if not row:
         raise HTTPException(404, "No profile yet — upload a resume first")
@@ -72,7 +73,7 @@ async def download_resume(resume_id: UUID, uid: UUID = Depends(current_user)):
     from fastapi.responses import Response
     async with tenant_session(uid) as s:
         row = (await s.execute(
-            select(Resume).where(Resume.id == resume_id)
+            select(Resume).where(Resume.id == resume_id, Resume.user_id == uid)
         )).scalar_one_or_none()
     if not row:
         raise HTTPException(404, "Not found")

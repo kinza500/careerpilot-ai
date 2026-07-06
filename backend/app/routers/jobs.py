@@ -30,7 +30,8 @@ async def discover_and_rank(body: DiscoverIn, uid: UUID = Depends(current_user))
     # need the latest profile to rank against
     async with tenant_session(uid) as s:
         profile_row = (await s.execute(
-            select(SkillProfile).order_by(SkillProfile.created_at.desc()).limit(1)
+            select(SkillProfile).where(SkillProfile.user_id == uid)
+            .order_by(SkillProfile.created_at.desc()).limit(1)
         )).scalar_one_or_none()
     if not profile_row:
         raise HTTPException(400, "Upload a resume first")
@@ -110,14 +111,15 @@ async def list_matches(uid: UUID = Depends(current_user)):
         # Only surface matches computed against the current resume/profile —
         # otherwise a stale ranking from before a resume replace keeps reappearing.
         latest_profile_id = (await s.execute(
-            select(SkillProfile.id).order_by(SkillProfile.created_at.desc()).limit(1)
+            select(SkillProfile.id).where(SkillProfile.user_id == uid)
+            .order_by(SkillProfile.created_at.desc()).limit(1)
         )).scalar_one_or_none()
         if latest_profile_id is None:
             return []
         saved_ids = await _saved_job_ids(s, uid)
         rows = (await s.execute(
             select(Match, Job).join(Job, Job.id == Match.job_id)
-            .where(Match.profile_id == latest_profile_id)
+            .where(Match.profile_id == latest_profile_id, Match.user_id == uid)
             .order_by(Match.score.desc()).limit(50)
         )).all()
     return [
