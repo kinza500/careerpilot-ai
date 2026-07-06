@@ -72,8 +72,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [scheduleBusy, setScheduleBusy] = useState(false);
 
   useEffect(() => {
-    if (!msg || msgUrl) return; // leave link messages up until the user acts, not on a timer
-    const t = setTimeout(() => setMsg(""), 5000);
+    if (!msg) return;
+    // Link messages (e.g. "Open in Gmail") get longer to notice and click,
+    // but must still clear eventually — otherwise they stick on every page
+    // indefinitely, same bug as the plain-text messages had before.
+    const t = setTimeout(() => setMsg(""), msgUrl ? 30000 : 5000);
     return () => clearTimeout(t);
   }, [msg, msgUrl]);
 

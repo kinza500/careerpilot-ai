@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearToken } from "@/lib/api";
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context";
 import ApplicationDrawer from "@/components/ApplicationDrawer";
-import { Clock, Compass, LayoutList, LogOut, Mail, MessagesSquare, Search, TriangleAlert } from "lucide-react";
+import { Clock, Compass, LayoutList, LogOut, Mail, MessagesSquare, Search, TriangleAlert, X } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Discover & Rank", icon: Search },
@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { gmail, onConnectGmail, followups, msg, msgUrl } = useDashboard();
+  const { gmail, onConnectGmail, followups, msg, msgUrl, setMsg } = useDashboard();
 
   return (
     <div className="min-h-screen">
@@ -91,13 +91,16 @@ function DashboardShell({ children }: { children: ReactNode }) {
         <main className="min-w-0 flex-1 space-y-6">
           {msg && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-700">
-              <span>{msg}</span>
+              <span className="flex-1">{msg}</span>
               {msgUrl && (
                 <a href={msgUrl} target="_blank" rel="noopener noreferrer"
                    className="font-medium text-indigo-600 underline hover:text-indigo-800">
                   Open in Gmail
                 </a>
               )}
+              <button onClick={() => setMsg("")} aria-label="Dismiss" className="text-slate-400 hover:text-slate-600">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           )}
           {children}
