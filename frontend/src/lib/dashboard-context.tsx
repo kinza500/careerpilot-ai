@@ -81,12 +81,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [msg, msgUrl]);
 
-  // A status message belongs to the page it was created on (e.g. "Draft
-  // created" on Applications, or a follow-up draft on Follow-ups) — it
-  // shouldn't follow the user to unrelated pages like Interview Prep.
+  // Draft/follow-up messages belong to the Applications and Follow-ups
+  // pages, where those actions actually happen — they stay visible while
+  // moving between those two, but shouldn't follow the user to unrelated
+  // pages like Discover or Interview Prep.
   useEffect(() => {
-    setMsg("");
-    setMsgUrl(null);
+    const MESSAGE_PAGES = ["/dashboard/applications", "/dashboard/followups"];
+    if (!MESSAGE_PAGES.includes(pathname)) {
+      setMsg("");
+      setMsgUrl(null);
+    }
   }, [pathname]);
 
   function refreshApplications() {
